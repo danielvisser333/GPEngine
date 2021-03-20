@@ -1,5 +1,6 @@
 mod instance;
 mod device;
+mod memory;
 
 use std::ffi::CStr;
 
@@ -22,6 +23,7 @@ impl Renderer{
         let surface = unsafe{ash_window::create_surface(&entry, &instance, window, None)}.expect("Failed to create Vulkan surface");
         let gpu = unsafe{device::get_physical_device(&instance, &surface_loader, &surface)};
         let device = unsafe{device::create_device(&instance, &gpu, &surface_loader, &surface)};
+        let memory_allocator = memory::MemoryAllocator::new(&instance, &gpu, &device);
         return Self{
             entry , instance , surface_loader , surface , gpu , device ,
         }
