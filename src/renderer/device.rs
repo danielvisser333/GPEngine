@@ -1,4 +1,4 @@
-use ash::{Device, Instance, extensions::khr::{Surface, Swapchain}, version::InstanceV1_0, vk::{DeviceCreateFlags, DeviceCreateInfo, PhysicalDevice, PhysicalDeviceFeatures, PhysicalDeviceType, QueueFlags, StructureType, SurfaceKHR}};
+use ash::{Device, Instance, extensions::khr::{Surface, Swapchain}, version::InstanceV1_0, vk::{DeviceCreateFlags, DeviceCreateInfo, DeviceQueueCreateFlags, DeviceQueueCreateInfo, PhysicalDevice, PhysicalDeviceFeatures, PhysicalDeviceType, QueueFlags, StructureType, SurfaceKHR}};
 
 pub unsafe fn get_physical_device(instance : &Instance , surface_loader : &Surface , surface : &SurfaceKHR)->PhysicalDevice{
     let physical_devices = instance.enumerate_physical_devices().expect("Failed to get available GPU's");
@@ -24,7 +24,55 @@ pub unsafe fn create_device(instance : &Instance , physical_device : &PhysicalDe
     let extensions = [Swapchain::name().as_ptr()];
     let graphics_queue_family = get_graphics_queue_family(instance, physical_device);
     let presentation_queue_family = get_presentation_queue_family(instance, physical_device, surface_loader, surface, graphics_queue_family);
-    let 
+    let compute_queue_family = get_compute_queue_family(instance, physical_device);
+    let transfer_queue_family = get_transfer_queue_family(instance, physical_device);
+    let priority = [1.0];
+    let mut device_queue_create_infos = vec!(
+        DeviceQueueCreateInfo{
+            s_type : StructureType::DEVICE_QUEUE_CREATE_INFO,
+            p_next : std::ptr::null(),
+            flags : DeviceQueueCreateFlags::empty(),
+            queue_family_index : graphics_queue_family,
+            queue_count : 1,
+            p_queue_priorities : priority.as_ptr(),
+        }
+    );
+    if presentation_queue_family != graphics_queue_family{
+        device_queue_create_infos.push(
+            DeviceQueueCreateInfo{
+                s_type : StructureType::DEVICE_QUEUE_CREATE_INFO,
+                p_next : std::ptr::null(),
+                flags : DeviceQueueCreateFlags::empty(),
+                queue_family_index : presentation_queue_family,
+                queue_count : 1,
+                p_queue_priorities : priority.as_ptr(),
+            }
+        )
+    }
+    if compute_queue_family != presentation_queue_family && compute_queue_family != graphics_queue_family{
+        device_queue_create_infos.push(
+            DeviceQueueCreateInfo{
+                s_type : StructureType::DEVICE_QUEUE_CREATE_INFO,
+                p_next : std::ptr::null(),
+                flags : DeviceQueueCreateFlags::empty(),
+                queue_family_index : compute_queue_family,
+                queue_count : 1,
+                p_queue_priorities : priority.as_ptr(),
+            }
+        )
+    }
+    if transfer_queue_family != compute_queue_family && transfer_queue_family != graphics_queue_family && transfer_queue_family != presentation_queue_family{
+        device_queue_create_infos.push(
+            DeviceQueueCreateInfo{
+                s_type : StructureType::DEVICE_QUEUE_CREATE_INFO,
+                p_next : std::ptr::null(),
+                flags : DeviceQueueCreateFlags::empty(),
+                queue_family_index : transfer_queue_family,
+                queue_count : 1,
+                p_queue_priorities : priority.as_ptr(),
+            }
+        )
+    }
     let features = PhysicalDeviceFeatures{
         ..Default::default()
     };
@@ -37,7 +85,10 @@ pub unsafe fn create_device(instance : &Instance , physical_device : &PhysicalDe
         enabled_extension_count : extensions.len() as u32,
         pp_enabled_extension_names : extensions.as_ptr(),
         p_enabled_features : &features,
+        queue_create_info_count : device_queue_create_infos.len() as u32,
+        p_queue_create_infos : device_queue_create_infos.as_ptr(),
     };
+    return instance.create_device(*physical_device, &&device_create_info, None).expect("Failed to create Vulkan device");
 }
 pub unsafe fn get_graphics_queue_family(instance : &Instance , physical_device : &PhysicalDevice) -> u32{
     for (i,&queue_family) in instance.get_physical_device_queue_family_properties(*physical_device).iter().enumerate(){

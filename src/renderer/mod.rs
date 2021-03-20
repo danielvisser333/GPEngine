@@ -3,7 +3,7 @@ mod device;
 
 use std::ffi::CStr;
 
-use ash::{Entry, Instance, extensions::khr::Surface, version::InstanceV1_0, vk::{PhysicalDevice, SurfaceKHR}};
+use ash::{Device, Entry, Instance, extensions::khr::Surface, version::{DeviceV1_0, InstanceV1_0}, vk::{PhysicalDevice, SurfaceKHR}};
 use winit::window::Window;
 
 pub struct Renderer{
@@ -12,6 +12,7 @@ pub struct Renderer{
     surface_loader : Surface,
     surface : SurfaceKHR,
     gpu : PhysicalDevice,
+    device : Device,
 }
 impl Renderer{
     pub fn new(window : &Window)->Self{
@@ -20,8 +21,9 @@ impl Renderer{
         let surface_loader = Surface::new(&entry, &instance);
         let surface = unsafe{ash_window::create_surface(&entry, &instance, window, None)}.expect("Failed to create Vulkan surface");
         let gpu = unsafe{device::get_physical_device(&instance, &surface_loader, &surface)};
+        let device = unsafe{device::create_device(&instance, &gpu, &surface_loader, &surface)};
         return Self{
-            entry , instance , surface_loader , surface , gpu ,
+            entry , instance , surface_loader , surface , gpu , device ,
         }
     }
     pub fn debug(&self){
@@ -42,6 +44,8 @@ impl Renderer{
 impl Drop for Renderer{
     fn drop(&mut self) {
         unsafe{
+            self.device.device_wait_idle().expect("Failed to properly shutdown renderer");
+            self.device.destroy_device(None);
             self.surface_loader.destroy_surface(self.surface, None);
             self.instance.destroy_instance(None);
         }
