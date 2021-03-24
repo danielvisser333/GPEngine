@@ -1,10 +1,10 @@
 use ash::vk::DeviceMemory;
 
 pub struct VertexBuffer{
-    vertex_count : u32,
-    vertex_size : u32,
-    offset : u32,
-    allocation : DeviceMemory,
+    pub vertex_count : u32,
+    pub vertex_size : u32,
+    pub offset : u32,
+    pub allocation : DeviceMemory,
 }
 pub struct IndexBuffer{
     

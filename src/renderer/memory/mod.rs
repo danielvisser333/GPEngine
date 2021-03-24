@@ -1,7 +1,7 @@
 mod buffers;
 mod images;
 
-use ash::{Device, Instance, vk::{BufferCreateFlags, BufferCreateInfo, BufferUsageFlags, PhysicalDevice, SharingMode, StructureType}};
+use ash::{Device, Instance, version::DeviceV1_0, vk::{BufferCreateFlags, BufferCreateInfo, BufferUsageFlags, DeviceMemory, PhysicalDevice, SharingMode, StructureType}};
 
 use self::buffers::VertexBuffer;
 
@@ -18,18 +18,23 @@ impl MemoryAllocator{
             device : device.clone(),
         }
     }
-    pub fn create_vertex_buffer(&self , size : u64 ,)->VertexBuffer{
+    pub unsafe fn create_vertex_buffer(&self , vertex_count : u32 , vertex_size : u32 , device_local : bool)->VertexBuffer{
         let buffer_create_info = BufferCreateInfo{
             s_type : StructureType::BUFFER_CREATE_INFO,
             p_next : std::ptr::null(),
             //Todo: Add the option to use sparse binding.
             flags : BufferCreateFlags::empty(),
-            size,
+            size : (vertex_count * vertex_size) as u64,
             usage : BufferUsageFlags::VERTEX_BUFFER,
             //Force the usage of memory barriers for transfer.
             sharing_mode : SharingMode::EXCLUSIVE,
             queue_family_index_count : 0,
             p_queue_family_indices : std::ptr::null(),
         };
+        let vertex_buffer = self.device.create_buffer(&&buffer_create_info, None).expect("Memory allocation error");
+        
+        return VertexBuffer{
+            vertex_count , vertex_size , offset : u32::MAX , allocation : DeviceMemory::null() ,
+        }
     }
 }
