@@ -1,12 +1,16 @@
 [package]
 name = "gpengine"
 version = "0.1.0"
-authors = ["DanielVisser"]
+authors = ["Daniël Visser <danielvisser10@outlook.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-winit = "0.24.0"
-ash = "0.32.0"
+log = "0.4"
+chrono = "0.4"
+simplelog = "0.10"
+directories = "3.0"
+winit = "0.24"
+ash = "0.32.1"
 ash-window = "0.6"
